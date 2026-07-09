@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Priority Grading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void:#090a0e; --void2:#0d0f15; --panel:rgba(20,22,30,0.78);
+    --ink:#ece6da; --ink-dim:#c4bcae; --mut:#8d8678;
+    --hair:rgba(236,230,218,0.10); --hair2:rgba(236,230,218,0.20);
+    --pink:#ef6ba8; --sage:#8fc7a4; --blue:#5aa9e6; --lav:#b79bdd; --teal:#56b3a6; --amber:#e3b23c; --gold:#e7c24a;
+    --serif:"Fraunces",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:linear-gradient(168deg,var(--void),var(--void2) 60%,#0a0c12); color:var(--ink);
+    font-family:var(--serif); padding:40px 18px 70px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  .kicker { font-family:var(--mono); font-size:11px; letter-spacing:.35em; text-transform:uppercase; color:var(--amber);
+    display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  .kicker .line { flex:1; height:1px; background:var(--hair2); }
+  h1 { font-family:var(--serif); font-weight:600; font-size:clamp(1.9rem,6vw,3rem); line-height:1.05; letter-spacing:-.01em; margin:0 0 12px; }
+  h1 .glow { font-style:italic; font-weight:500; background:linear-gradient(96deg,var(--amber),var(--pink) 45%,var(--lav));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lede { color:var(--ink-dim); font-size:1rem; max-width:58ch; margin:0 0 30px; }
+  .card { position:relative; background:var(--panel); border:1px solid var(--hair); border-radius:4px; padding:22px 24px; margin-bottom:16px; }
+  .card.tight { padding:18px 20px; margin-bottom:10px; }
+  input[type=text] { width:100%; background:rgba(255,255,255,.04); border:1px solid var(--hair2); border-radius:4px;
+    padding:12px 14px; color:var(--ink); font-family:var(--mono); font-size:14px; outline:none; }
+  button { font-family:var(--mono); font-size:13px; font-weight:700; letter-spacing:.03em; padding:12px 22px; border-radius:4px;
+    cursor:pointer; border:1px solid var(--amber); background:rgba(227,178,60,.13); color:var(--amber); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .domain-head { display:flex; align-items:center; gap:12px; margin:26px 0 12px; }
+  .domain-head .dot { width:8px; height:8px; border-radius:2px; }
+  .domain-head .label { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; }
+  .domain-head .line { flex:1; height:1px; background:var(--hair); }
+  .agent-top { display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; align-items:flex-start; }
+  .agent-name { font-family:var(--serif); font-weight:600; font-size:1.08rem; margin:0 0 4px; }
+  .agent-meta { font-family:var(--mono); font-size:10.5px; color:var(--mut); margin:0 0 8px; letter-spacing:.03em; }
+  .agent-blurb { font-family:var(--serif); font-style:italic; font-size:.9rem; color:var(--ink-dim); line-height:1.5; margin:0; max-width:480px; }
+  .ptags { display:flex; gap:6px; }
+  .ptag { font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.05em; padding:6px 10px; border-radius:3px;
+    border:1px solid var(--hair2); background:transparent; color:var(--mut); cursor:pointer; }
+  .ptag.active { border-color: var(--ac); background: color-mix(in srgb, var(--ac) 15%, transparent); color: var(--ac); }
+  .slider-row { margin-top:16px; }
+  .slider-label { display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--mut); margin-bottom:6px; }
+  .slider-label .val { font-weight:700; font-size:13px; }
+  input[type=range] { width:100%; }
+  .submit-wrap { text-align:center; margin:28px 0 44px; }
+  .status { font-family:var(--mono); font-size:12px; margin-top:10px; }
+  .status.ok { color: var(--sage); }
+  .status.err { color: var(--pink); }
+  .board-row { display:flex; align-items:center; gap:14px; padding:12px 16px; margin-bottom:8px; border:1px solid var(--hair2); border-radius:4px; background:rgba(255,255,255,.02); }
+  .board-row.top { background:linear-gradient(180deg, rgba(231,194,74,.10), transparent); }
+  .medal { width:30px; height:30px; border-radius:50%; flex-shrink:0; }
+  .rank-num { width:30px; text-align:center; color:var(--mut); font-weight:700; }
+  .board-name { font-family:var(--serif); font-weight:600; font-size:.98rem; margin:0; }
+  .board-domain { font-family:var(--mono); font-size:10px; margin:2px 0 0; letter-spacing:.05em; }
+  .board-score { font-family:var(--serif); font-weight:700; font-size:1.1rem; color:var(--gold); }
+  footer { font-family:var(--mono); font-size:10px; color:var(--mut); text-align:center; margin-top:40px; letter-spacing:.06em; }
+  .hint { color:var(--mut); font-size:13px; font-style:italic; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker"><span>Deriva Energy · AI CoE</span><span class="line"></span><span id="voterCount">0 scored</span></div>
+  <h1>Grade the <span class="glow">Agent Roadmap</span></h1>
+  <p class="lede">Tag each agent with a build priority and rate how useful it'd be to your team. Scores are shared — everyone on this page can see the live results.</p>
+
+  <div id="gateCard" class="card">
+    <p style="font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin:0 0 8px;">Before you start</p>
+    <p style="font-family:var(--serif);font-size:1.2rem;font-weight:600;margin:0 0 16px;">What's your name or team?</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <input type="text" id="voterInput" placeholder="e.g. Sarah — M&A" style="flex:1;min-width:200px;">
+      <button id="startBtn">Start grading →</button>
+    </div>
+    <p class="hint">Your name is stored with your scores so everyone can see who prioritized what.</p>
+  </div>
+
+  <div id="gradingArea" style="display:none;"></div>
+
+  <div class="submit-wrap" id="submitWrap" style="display:none;">
+    <button id="submitBtn">Submit my scores</button>
+    <div id="statusMsg"></div>
+  </div>
+
+  <div style="border-top:1px solid var(--hair);padding-top:30px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <span style="font-family:var(--serif);font-weight:600;font-size:1.3rem;">Live Results</span>
+      <span style="flex:1;height:1px;background:var(--hair);"></span>
+      <span id="responseCount" style="font-family:var(--mono);font-size:11px;color:var(--mut);">0 responses</span>
+    </div>
+    <div id="leaderboard"><p style="color:var(--mut);font-style:italic;">Loading results…</p></div>
+  </div>
+
+  <footer>DERIVA ENERGY AI CoE — LIVE STAKEHOLDER SCORING — SHARED WITH ALL VIEWERS OF THIS PAGE</footer>
+</div>
+
+<script>
+// ── CONFIGURE THESE TWO URLS after creating your Power Automate flows ──
+const SUBMIT_FLOW_URL = "PASTE_YOUR_SUBMIT_VOTE_FLOW_URL_HERE";
+const GET_FLOW_URL = "PASTE_YOUR_GET_VOTES_FLOW_URL_HERE";
+// ─────────────────────────────────────────────────────────────────────
+
+const PALETTE = { blue:"#5aa9e6", teal:"#56b3a6", pink:"#ef6ba8", lav:"#b79bdd", gold:"#e7c24a",
+  silver:"#c3cad6", bronze:"#c1875a", mut:"#8d8678" };
+
+const DOMAINS = [
+  { id:"project", label:"Project-Level Data", ac:PALETTE.blue },
+  { id:"dc", label:"Data Center Data", ac:PALETTE.teal },
+  { id:"signals", label:"Signals Data", ac:PALETTE.pink },
+  { id:"combined", label:"Combined Dataset Agents", ac:PALETTE.lav },
+];
+
+const AGENTS = [
+  { id:"01", domain:"project", name:"Pipeline Scout", meta:"Origination · Early Stage · Direct API · Conversational",
+    blurb:"Real-time queue lookups against live NPM data — surfaces unclaimed projects by fuel type, size, and region before competitors see them." },
+  { id:"02", domain:"project", name:"Queue Position Monitor", meta:"Development · Databricks Gold · Proactive briefing",
+    blurb:"Tracks queue phase movement and COD slippage on Deriva's watchlist over time — weekly read on timeline risk and stalled competitor projects." },
+  { id:"03", domain:"project", name:"Developer Pipeline Profiler", meta:"M&A · Databricks Gold · Conversational + structured output",
+    blurb:"Full developer pipeline profile on demand — MW, queue stages, fuel mix, geographic concentration. Pre-acquisition diligence acceleration." },
+  { id:"04", domain:"dc", name:"Data Center Demand Signal Agent", meta:"M&A · Origination · Direct API · Conversational",
+    blurb:"Live lookups on newly proposed data center sites by geography and load size — an origination trigger for PPA opportunities." },
+  { id:"05", domain:"dc", name:"Data Center Co-location Proximity Agent", meta:"Development · Origination · Databricks Gold · Conversational",
+    blurb:"Cross-references Deriva's own project locations against proposed data centers to surface co-location and powered-land opportunities." },
+  { id:"06", domain:"dc", name:"Data Center Deal Flow Tracker", meta:"M&A · Databricks Gold · Proactive briefing",
+    blurb:"Weekly digest of data center financing events, ownership changes, and deal velocity — spots trend a single API call can't show." },
+  { id:"07", domain:"signals", name:"Regulatory Watch Agent", meta:"M&A · Development · Direct API · Proactive alerting",
+    blurb:"Real-time alerts on FERC orders, PUC rulings, and interconnection policy changes — tied back to Deriva's exposed projects." },
+  { id:"08", domain:"signals", name:"Tax Abatement Opportunity Agent", meta:"Origination · Early Stage · Hybrid · Conversational",
+    blurb:"Live tax abatement signals by county, joined against Deriva's early-stage project locations to flag where incentives already line up." },
+  { id:"09", domain:"combined", name:"Market Entry Intelligence Agent", meta:"M&A · Strategy · Databricks Gold · Conversational + structured output",
+    blurb:"The full-picture M&A agent — synthesizes pipeline, data center demand, and regulatory signals to rank the best acquisition markets." },
+  { id:"10", domain:"combined", name:"Site Selection Intelligence Agent", meta:"Development · Origination · Databricks Gold · Conversational",
+    blurb:"Scores counties for new development using queue congestion, data center demand proximity, and abatement availability together." },
+  { id:"11", domain:"combined", name:"Competitive Deal Velocity Agent", meta:"M&A · Origination · Databricks Gold · Proactive briefing",
+    blurb:"Weekly read on how fast competitors are moving — queue advances, closings, new data center PPAs signed, by region." },
+  { id:"12", domain:"combined", name:"Early Stage Opportunity Briefing Agent", meta:"All Teams · Direct API · Daily briefing",
+    blurb:"The morning brief — a daily digest across all three NPM domains that replaces manually checking NPM every morning." },
+  { id:"13", domain:"signals", name:"County Sentiment Scoring Agent", meta:"Development · Origination · M&A · Databricks Gold · Conversational",
+    blurb:"Dual-axis opportunity/risk score per county from NPM signals, with 90-day time-decay weighting. Upstream input for Agents 9 and 10." },
+];
+const PRIORITIES = ["P1","P2","P3"];
+
+let voter = "";
+let scores = {};
+AGENTS.forEach(a => scores[a.id] = { priority:"P2", score:5 });
+
+function domainOf(id){ return DOMAINS.find(d => d.id === id); }
+
+function renderGrading() {
+  const area = document.getElementById("gradingArea");
+  area.style.display = "block";
+  area.innerHTML = "";
+  DOMAINS.forEach(dom => {
+    const head = document.createElement("div");
+    head.className = "domain-head";
+    head.innerHTML = `<span class="dot" style="background:${dom.ac};box-shadow:0 0 8px ${dom.ac};"></span>
+      <span class="label" style="color:${dom.ac};">${dom.label}</span><span class="line"></span>`;
+    area.appendChild(head);
+
+    AGENTS.filter(a => a.domain === dom.id).forEach(a => {
+      const card = document.createElement("div");
+      card.className = "card tight";
+      card.style.boxShadow = `inset 3px 0 0 -2px ${dom.ac}`;
+      card.innerHTML = `
+        <div class="agent-top">
+          <div>
+            <p class="agent-name">${a.name}</p>
+            <p class="agent-meta">${a.meta}</p>
+            <p class="agent-blurb">${a.blurb}</p>
+          </div>
+          <div class="ptags" data-agent="${a.id}">
+            ${PRIORITIES.map(p => `<button class="ptag ${scores[a.id].priority===p?'active':''}" data-p="${p}" style="--ac:${dom.ac}">${p}</button>`).join("")}
+          </div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>USEFULNESS</span><span class="val" id="val-${a.id}" style="color:${dom.ac}">${scores[a.id].score}/10</span></div>
+          <input type="range" min="1" max="10" value="${scores[a.id].score}" data-agent="${a.id}" style="accent-color:${dom.ac}">
+        </div>`;
+      area.appendChild(card);
+
+      card.querySelectorAll(".ptag").forEach(btn => {
+        btn.addEventListener("click", () => {
+          scores[a.id].priority = btn.dataset.p;
+          card.querySelectorAll(".ptag").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+        });
+      });
+      card.querySelector("input[type=range]").addEventListener("input", (e) => {
+        scores[a.id].score = Number(e.target.value);
+        document.getElementById(`val-${a.id}`).textContent = e.target.value + "/10";
+      });
+    });
+  });
+  document.getElementById("submitWrap").style.display = "block";
+}
+
+document.getElementById("startBtn").addEventListener("click", () => {
+  const name = document.getElementById("voterInput").value.trim();
+  if (!name) return;
+  voter = name;
+  document.getElementById("gateCard").style.display = "none";
+  renderGrading();
+});
+
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("submitBtn");
+  const statusEl = document.getElementById("statusMsg");
+  btn.disabled = true; btn.textContent = "Saving…"; statusEl.textContent = "";
+  try {
+    const payload = {
+      voter,
+      votes: AGENTS.map(a => ({ agentId:a.id, agentName:a.name, domain:a.domain, priority:scores[a.id].priority, score:scores[a.id].score }))
+    };
+    const res = await fetch(SUBMIT_FLOW_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("save failed");
+    statusEl.textContent = "✓ Saved — visible in the results below";
+    statusEl.className = "status ok";
+    btn.textContent = "Update my scores";
+    loadLeaderboard();
+  } catch (e) {
+    statusEl.textContent = "Couldn't save — check your connection and try again.";
+    statusEl.className = "status err";
+    btn.textContent = "Submit my scores";
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function medalStyle(rank) {
+  if (rank === 0) return "background:radial-gradient(circle at 36% 34%, #f8e36a, #b88010 60%, #7a5200); box-shadow:0 0 16px rgba(231,194,74,.6);";
+  if (rank === 1) return "background:radial-gradient(circle at 36% 34%, #dde5ec, #7e96a2 60%, #4e6472); box-shadow:0 0 10px rgba(195,202,214,.4);";
+  if (rank === 2) return "background:radial-gradient(circle at 36% 34%, #d89a72, #8a4e25 60%, #5a2e10); box-shadow:0 0 10px rgba(193,135,90,.4);";
+  return null;
+}
+
+async function loadLeaderboard() {
+  const board = document.getElementById("leaderboard");
+  try {
+    const res = await fetch(GET_FLOW_URL);
+    const items = await res.json();
+    const rows = Array.isArray(items) ? items : (items.value || []);
+    const voters = new Set(rows.map(r => r.Voter));
+    document.getElementById("voterCount").textContent = `${voters.size} scored`;
+    document.getElementById("responseCount").textContent = `${voters.size} responses`;
+
+    const agg = {};
+    AGENTS.forEach(a => agg[a.id] = { sum:0, n:0 });
+    rows.forEach(r => {
+      if (!agg[r.AgentID]) return;
+      agg[r.AgentID].sum += Number(r.Score) || 0;
+      agg[r.AgentID].n += 1;
+    });
+    const ranked = AGENTS.map(a => ({ ...a, avg: agg[a.id].n ? agg[a.id].sum / agg[a.id].n : 0, n: agg[a.id].n }))
+      .sort((x, y) => y.avg - x.avg);
+
+    if (voters.size === 0) {
+      board.innerHTML = `<p style="color:var(--mut);font-style:italic;">No scores yet — be the first to grade the roadmap above.</p>`;
+      return;
+    }
+    board.innerHTML = ranked.map((a, i) => {
+      const dom = domainOf(a.domain);
+      const m = medalStyle(i);
+      return `<div class="board-row ${i===0?'top':''}">
+        ${m ? `<div class="medal" style="${m}"></div>` : `<span class="rank-num">${i+1}</span>`}
+        <div style="flex:1;min-width:140px;">
+          <p class="board-name">${a.name}</p>
+          <p class="board-domain" style="color:${dom.ac}">${dom.label.toUpperCase()}</p>
+        </div>
+        <span class="board-score">${a.avg.toFixed(1)}<span style="font-family:var(--mono);font-size:10px;color:var(--mut);"> /10</span></span>
+      </div>`;
+    }).join("");
+  } catch (e) {
+    board.innerHTML = `<p style="color:var(--pink);font-family:var(--mono);font-size:12px;">Couldn't load results. Check the flow URL is configured correctly.</p>`;
+  }
+}
+
+loadLeaderboard();
+</script>
+</body>
+</html>
